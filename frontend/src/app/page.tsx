@@ -1,65 +1,169 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { ModernTabs } from "@/components/ui/modern-tabs";
+import { LayoutDashboard, Users, BookOpen, CreditCard, PieChart } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
+
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/api";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Cell
+} from "recharts";
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState("dashboard");
+
+  // Fetch Financial Summary
+  const { data: financialData, isLoading: isFinancialLoading } = useQuery({
+    queryKey: ["financial-summary"],
+    queryFn: async () => {
+      const res = await api.get("/analytics/financial-summary");
+      return res.data;
+    },
+  });
+
+  // Fetch Students at Risk
+  const { data: riskData, isLoading: isRiskLoading } = useQuery({
+    queryKey: ["students-at-risk"],
+    queryFn: async () => {
+      const res = await api.get("/analytics/risk");
+      return res.data;
+    },
+  });
+
+  const tabs = [
+    { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: "students", label: "Estudantes", icon: <Users className="w-4 h-4" /> },
+    { id: "academic", label: "Pedagógico", icon: <BookOpen className="w-4 h-4" /> },
+    { id: "financial", label: "Financeiro", icon: <CreditCard className="w-4 h-4" /> },
+    { id: "analytics", label: "Analytics", icon: <PieChart className="w-4 h-4" /> },
+  ];
+
+  // Mock data for the chart if real data is empty
+  const chartData = financialData?.recentPayments?.map((p: any) => ({
+    name: new Date(p.created_at).toLocaleDateString(),
+    amount: Number(p.amount_paid)
+  })) || [];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <DashboardLayout>
+      {/* Abstract Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[20%] right-[5%] w-[40%] h-[40%] bg-emerald-500/5 rounded-full blur-[120px]" />
+      </div>
+
+      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-8 mb-12">
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight mb-2">
+            Olá, <span className="text-gradient">Director</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-white/50 text-lg">
+            Aqui está o resumo da sua escola hoje.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        
+        <ModernTabs 
+          tabs={tabs} 
+          activeTab={activeTab} 
+          onChange={setActiveTab} 
+        />
+      </header>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+        >
+          {/* Main Analytics Card */}
+          <div className="lg:col-span-2 glass-card p-10 rounded-[3rem]">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-semibold capitalize">{activeTab} Principal</h2>
+              <div className="px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-500 text-xs font-bold uppercase tracking-widest">
+                Live Data
+              </div>
+            </div>
+            
+            <div className="h-[350px] w-full">
+              {isFinancialLoading ? (
+                <div className="h-full w-full flex items-center justify-center text-white/20">Carregando dados...</div>
+              ) : chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                    <XAxis dataKey="name" stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value} MT`} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: "#121214", border: "1px solid #ffffff10", borderRadius: "16px" }}
+                      itemStyle={{ color: "#10b981" }}
+                    />
+                    <Bar dataKey="amount" radius={[8, 8, 0, 0]}>
+                      {chartData.map((_entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={index === chartData.length - 1 ? "#10b981" : "#10b98140"} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full w-full flex flex-col items-center justify-center text-white/20 gap-4">
+                  <PieChart className="w-12 h-12" />
+                  <p>Sem dados financeiros recentes para exibir.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar Metrics */}
+          <div className="space-y-8">
+            <div className="glass-card p-10 rounded-[3rem] group hover:border-emerald-500/30 transition-all">
+              <h3 className="text-white/50 font-medium mb-4 text-sm uppercase tracking-wider">Total Arrecadado</h3>
+              <div className="text-5xl font-bold text-gradient">
+                {financialData?.totalCollected?.toLocaleString() || "0"} <span className="text-xl">MT</span>
+              </div>
+              <p className="text-white/30 text-sm mt-3 font-light">Baseado em {financialData?.paymentCount || 0} pagamentos</p>
+            </div>
+            
+            <div className={cn(
+              "glass-card p-10 rounded-[3rem] border-white/5 transition-all",
+              riskData?.length > 0 ? "border-red-500/20 bg-red-500/5" : "border-emerald-500/10"
+            )}>
+              <h3 className="text-white/50 font-medium mb-4 text-sm uppercase tracking-wider">Alerta Analytics</h3>
+              {isRiskLoading ? (
+                <p className="text-white/20 italic">Analisando desempenho...</p>
+              ) : riskData?.length > 0 ? (
+                <>
+                  <p className="text-red-400 text-2xl font-semibold">{riskData.length} Alunos em Risco</p>
+                  <div className="mt-4 space-y-2">
+                    {riskData.slice(0, 2).map((student: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between text-sm">
+                        <span className="text-white/60">{student.name}</span>
+                        <span className="text-red-400/80 font-bold">{Number(student.average).toFixed(1)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="text-emerald-400 text-xl font-semibold">Tudo em ordem!</p>
+              )}
+              <p className="text-white/30 text-sm mt-4 font-light">Média limiar: 10.0 valores</p>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    </DashboardLayout>
   );
 }
